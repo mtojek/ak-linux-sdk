@@ -712,17 +712,35 @@ int test_tde( void )                                                            
         fclose( pFILE );
     }
     if( i_filesize_bg > 0 ) {                                                   //背景图片
-        pFILE = fopen( pc_file_bg , "rb" );                                     //将图片内容读入pmem
+										//
+    unsigned long x = 0, y = 0;
+    for (y = 0; y < 600; y++) {
+    for (x = 0; x < 1024; x++) {
+        char *location = ((char *) p_vaddr_bg) + (y * 3072) + (x * 3);  // Ensure correct pointer arithmetic
+
+        if (y <= 600 / 7 || x <= 1024 / 7 || y >= (6 * 600 / 7) || x >= (6 * 1024 / 7)) {
+            *(location) = 0;     // Red                                                                          
+            *(location + 1) = 0;                                                  
+            *(location + 2) = 254;                           
+        } else {                               
+            *(location) = 254;
+            *(location + 1) = 0; // Green
+            *(location + 2) = 0;             
+        }
+                                 
+    }        
+    }	
+        /*pFILE = fopen( pc_file_bg , "rb" );                                     //将图片内容读入pmem
         fseek( pFILE, 0, SEEK_SET ) ;
         fread( ( char * )p_vaddr_bg, 1, i_filesize_bg, pFILE);
-        fclose( pFILE );
+        fclose( pFILE );*/
         ak_tde_opt_scale( &tde_layer_bg, &tde_layer_screen );                   //贴背景图片
     }
     else {                                                                      //没有背景图片则使用白色背景
         memset( p_vaddr_fb , c_color_reset , fb_fix_screeninfo_param.smem_len );
     }
 
-    tde_layer_tgt.width = fb_var_screeninfo_param.xres;                         //屏幕宽
+    /*tde_layer_tgt.width = fb_var_screeninfo_param.xres;                         //屏幕宽
     tde_layer_tgt.height = fb_var_screeninfo_param.yres;                        //屏幕高
     tde_layer_tgt.phyaddr = tde_layer_screen.phyaddr;                           //屏幕的fb物理地址直接赋值
     tde_layer_tgt.format_param = tde_layer_screen.format_param;
@@ -731,7 +749,7 @@ int test_tde( void )                                                            
 
     //dump_layer_para("src", &tde_layer_src);
     //dump_layer_para("tgt", &tde_layer_tgt);
-    ak_tde_opt( &tde_cmd_param );                                               //贴源图片
+    ak_tde_opt( &tde_cmd_param ); */                                              //贴源图片
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话则调用ioctl
         ioctl( fd_gui, FBIOPUT_VSCREENINFO, &fb_var_screeninfo_param ) ;
     }
