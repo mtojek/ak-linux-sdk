@@ -35,6 +35,29 @@
 #define __STATIC__
 #endif
 
+void print_fb_var_screeninfo(struct fb_var_screeninfo vinfo) {
+    printf("Framebuffer Variable Screen Information:\n");
+    printf("-----------------------------------------\n");
+    printf("Resolution:        %d x %d\n", vinfo.xres, vinfo.yres);
+    printf("Virtual Resolution:%d x %d\n", vinfo.xres_virtual, vinfo.yres_virtual);
+    printf("Offset:            %d x %d\n", vinfo.xoffset, vinfo.yoffset);
+    printf("Bits per Pixel:    %d\n", vinfo.bits_per_pixel);
+    printf("Grayscale:         %d\n", vinfo.grayscale);
+    printf("\nColor Offsets and Lengths:\n");
+    printf("Red:    Offset=%d, Length=%d\n", vinfo.red.offset, vinfo.red.length);
+    printf("Green:  Offset=%d, Length=%d\n", vinfo.green.offset, vinfo.green.length);
+    printf("Blue:   Offset=%d, Length=%d\n", vinfo.blue.offset, vinfo.blue.length);
+    printf("Transp: Offset=%d, Length=%d\n", vinfo.transp.offset, vinfo.transp.length);
+    printf("\nMiscellaneous:\n");
+    printf("Pixel Clock:       %d ps\n", vinfo.pixclock);
+    printf("Refresh Rate:      %d Hz\n", vinfo.vmode);
+    printf("Activate Flags:    %d\n", vinfo.activate);
+    printf("Sync:              %d\n", vinfo.sync);
+    printf("Rotate:            %d\n", vinfo.rotate);
+    printf("Nonstandard:       %d\n", vinfo.nonstd);
+    printf("\n");
+}
+
 static int fd_gui = 0;
 
 static char *pc_prog_name = NULL;                                                      //demo名称
@@ -469,6 +492,7 @@ static int ak_gui_open( struct fb_fix_screeninfo *p_fb_fix_screeninfo, struct fb
                     close( fd_gui );
                     return AK_FAILED;
             }
+	    print_fb_var_screeninfo(*p_fb_var_screeninfo);
             if (ioctl(fd_gui, FBIOPUT_VSCREENINFO, p_fb_var_screeninfo) < 0) {
                 close( fd_gui );
                 return AK_FAILED;
@@ -562,7 +586,7 @@ __STATIC__ int main( int argc, char **argv )
 
 int test_tde( void )                                                            //tde图形操作测试
 {
-    long long i_filesize_bg = 0;
+    int i_filesize_bg = 0;
     FILE *pFILE;
     void *p_vaddr_src= NULL, *p_vaddr_bg= NULL;
     int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * 3;
@@ -575,9 +599,11 @@ int test_tde( void )                                                            
     else {
         tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start ;
     }
+    printf("tde_layer_screen.phyaddr = %lu\n", tde_layer_screen.phyaddr);
 
         p_vaddr_bg = ak_mem_dma_alloc( 1, i_dmasize_bg);
         ak_mem_dma_vaddr2paddr( p_vaddr_bg , ( unsigned long * )&tde_layer_bg.phyaddr );      //获取背景图片dma物理地址
+    printf("tde_layer_screen.phyaddr = %lu\n", tde_layer_screen.phyaddr);
 
     if( i_dmasize_bg > 0 ) {                                                   //背景图片
 										//
@@ -602,6 +628,7 @@ int test_tde( void )                                                            
     }
 
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话则调用ioctl
+        print_fb_var_screeninfo(fb_var_screeninfo_param);
         ioctl( fd_gui, FBIOPUT_VSCREENINFO, &fb_var_screeninfo_param ) ;
     }
 test_tde_end:
