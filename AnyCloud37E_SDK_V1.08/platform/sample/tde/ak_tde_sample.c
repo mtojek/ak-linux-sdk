@@ -71,7 +71,6 @@ static char ac_option_hint[  ][ LEN_HINT ] = {                                  
 
 static double af_format_byte[  ] = { 2 , 3 , 2 , 3 , 1.5 , 1.5 , 4 , 4 , 4 , 4 , 0 };  //图形格式占用的字节数
 static struct ak_tde_layer tde_layer_src = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;    //源坐标
-static struct ak_tde_layer tde_layer_tgt = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;    //目标坐标
 static struct ak_tde_layer tde_layer_bg = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;     //背景图坐标
 static struct ak_tde_layer tde_layer_screen = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ; //屏幕坐标
 static unsigned char c_color_reset = 0xff ;                                     //重置屏幕的颜色
@@ -385,34 +384,6 @@ static int parse_option( int argc, char **argv )
             case 'f' :                                                          //file-bg 源图文件
                 pc_file_bg = optarg;
                 break;
-            case 'g' :                                                          //rect-s 源图层宽高坐标信息
-                reset_regloop( &regloop_num );
-
-                //rt_kprintf(" <%s> , %d \n", optarg, __LINE__);
-                while( match_regloop( &regloop_num, optarg, ac_data, LEN_DATA ) > 0 )
-                {         //寻找匹配数字
-                    switch( regloop_num.i_times ) {
-                        case 0:
-                            tde_layer_src.width = atoi( ac_data ) ;             //图层宽度
-                            break;
-                        case 1:
-                            tde_layer_src.height = atoi( ac_data ) ;            //图层高度
-                            break;
-                        case 2:
-                            tde_layer_src.pos_left = atoi( ac_data ) ;          //选中区域坐标X值
-                            break;
-                        case 3:
-                            tde_layer_src.pos_top = atoi( ac_data ) ;           //选中区域坐标Y值
-                            break;
-                        case 4:
-                            tde_layer_src.pos_width = atoi( ac_data ) ;         //选中区域宽度
-                            break;
-                        case 5:
-                            tde_layer_src.pos_height = atoi( ac_data ) ;        //选中区域高度
-                            break;
-                    }
-                }
-                break;
             case 'i' :                                                          //rect-bg 背景图层参数设置
                 reset_regloop( &regloop_num );
 
@@ -447,43 +418,12 @@ static int parse_option( int argc, char **argv )
             case 'k' :
                 tde_layer_screen.format_param = atoi(optarg);
                 break;
-            case 'l' :
-                tde_layer_src.format_param = atoi(optarg);
-                break;
-            case 'm' :                                                          //rect-t 源图贴图的坐标信息
-                reset_regloop( &regloop_num );
-
-                //rt_kprintf(" ***   %s , %d \n", optarg, __LINE__);
-                while( match_regloop( &regloop_num, optarg, ac_data, LEN_DATA ) > 0 )
-                {    //寻找匹配数字
-                    switch( regloop_num.i_times ) {
-                        case 0:
-                            tde_layer_tgt.pos_left = atoi( ac_data ) ;          //选中区域坐标X值
-                            break;
-                        case 1:
-                            tde_layer_tgt.pos_top = atoi( ac_data ) ;           //选中区域坐标Y值
-                            break;
-                        case 2:
-                            tde_layer_tgt.pos_width = atoi( ac_data ) ;         //选中区域宽度
-                            break;
-                        case 3:
-                            tde_layer_tgt.pos_height = atoi( ac_data ) ;        //选中区域高度
-                            break;
-                    }
-                }
-                break;
             default :
                 help_hint();
                 c_flag = AK_FALSE;
                 goto parse_option_end;
         }
     }
-
-#if 0                                                                           //此处有bug,因为检测图层的时候tde_layer_screen的宽高还未赋值,会出现float异常
-    if(tde_cmd_param.opt & GP_OPT_SCALE) {
-        c_flag = scale_para_check(&tde_layer_src,&tde_layer_tgt) && scale_para_check(&tde_layer_bg,&tde_layer_screen);
-    }
-#endif
 
 parse_option_end:
     //free_regloop( &regloop_num );                                               //释放正则表达式结构的分配资源
@@ -667,15 +607,8 @@ int test_tde( void )                                                            
     long long i_filesize_src = 0, i_filesize_bg = 0;
     FILE *pFILE;
     void *p_vaddr_src= NULL, *p_vaddr_bg= NULL;
-    int i_dmasize_src = tde_layer_src.width * tde_layer_src.height * af_format_byte[ tde_layer_src.format_param ];      //源图片的设定大小
     int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * af_format_byte[ tde_layer_bg.format_param ];         //背景图片的设定大小
     int i_total_offset = tde_layer_screen.width * tde_layer_screen.height * af_format_byte[ tde_layer_screen.format_param ] ;
-
-    if ( ( ( tde_cmd_param.opt & GP_OPT_FILLRECT ) == 0 ) &&
-         ( ( i_dmasize_src == 0 ) || ( i_dmasize_bg == 0 ) ) ) {
-        ak_print_error_ex(MODULE_ID_APP, "FORMAT ERROR. i_dmasize_src= %d i_dmasize_bg= %d\n", i_dmasize_src, i_dmasize_bg );
-        goto test_tde_end;
-    }
 
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话，将buffer设置为使用另外一个buffer的偏移值
         DUAL_FB_VAR ^= 1;
@@ -685,31 +618,12 @@ int test_tde( void )                                                            
         tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start ;
     }
 
-    i_filesize_src = get_file_size( pc_file_src );                              //获取文件长度
     i_filesize_bg = get_file_size( pc_file_bg );
-    if ( ( ( tde_cmd_param.opt & GP_OPT_FILLRECT ) == 0 ) &&
-         ( ( i_filesize_src <= 0 ) || ( i_filesize_src != i_dmasize_src ) ||
-           ( i_filesize_bg <= 0 ) || ( i_filesize_bg != i_dmasize_bg ) ) ) {
-        ak_print_error( MODULE_ID_APP, "FILE SIZE NOT FIT FORMAT. i_filesize_src= %lld i_dmasize_src= %d i_filesize_bg= %lld i_dmasize_bg= %d\n",
-                        i_filesize_src, i_dmasize_src, i_filesize_bg, i_dmasize_bg );
-        goto test_tde_end;
-    }
-
-    if( i_filesize_src > 0 ) {
-        p_vaddr_src = ak_mem_dma_alloc( 1, i_filesize_src );                         //分配pmem内存
-        ak_mem_dma_vaddr2paddr( p_vaddr_src , ( unsigned long * )&tde_layer_src.phyaddr );    //获取源图片dma物理地址
-    }
     if( i_filesize_bg > 0 ) {
         p_vaddr_bg = ak_mem_dma_alloc( 1, i_filesize_bg );
         ak_mem_dma_vaddr2paddr( p_vaddr_bg , ( unsigned long * )&tde_layer_bg.phyaddr );      //获取背景图片dma物理地址
     }
 
-    if( i_filesize_src > 0 ) {                                                  //源图片
-        pFILE = fopen( pc_file_src , "rb" );                                    //将图片内容读入pmem
-        fseek(pFILE, 0, SEEK_SET);
-        fread( ( char * )p_vaddr_src, 1, i_filesize_src, pFILE);
-        fclose( pFILE );
-    }
     if( i_filesize_bg > 0 ) {                                                   //背景图片
 										//
     unsigned long x = 0, y = 0;
@@ -739,23 +653,10 @@ int test_tde( void )                                                            
         memset( p_vaddr_fb , c_color_reset , fb_fix_screeninfo_param.smem_len );
     }
 
-    /*tde_layer_tgt.width = fb_var_screeninfo_param.xres;                         //屏幕宽
-    tde_layer_tgt.height = fb_var_screeninfo_param.yres;                        //屏幕高
-    tde_layer_tgt.phyaddr = tde_layer_screen.phyaddr;                           //屏幕的fb物理地址直接赋值
-    tde_layer_tgt.format_param = tde_layer_screen.format_param;
-    tde_cmd_param.tde_layer_src = tde_layer_src;
-    tde_cmd_param.tde_layer_dst = tde_layer_tgt;
-
-    //dump_layer_para("src", &tde_layer_src);
-    //dump_layer_para("tgt", &tde_layer_tgt);
-    ak_tde_opt( &tde_cmd_param ); */                                              //贴源图片
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话则调用ioctl
         ioctl( fd_gui, FBIOPUT_VSCREENINFO, &fb_var_screeninfo_param ) ;
     }
 test_tde_end:
-    if( p_vaddr_src != NULL ) {
-        ak_mem_dma_free( p_vaddr_src );
-    }
     if( p_vaddr_bg != NULL ) {
         ak_mem_dma_free( p_vaddr_bg );
     }
