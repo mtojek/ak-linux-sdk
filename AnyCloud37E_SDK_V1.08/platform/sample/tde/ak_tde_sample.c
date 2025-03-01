@@ -408,6 +408,7 @@ static int parse_option( int argc, char **argv )
                 break;
             case 'k' :
                 tde_layer_screen.format_param = atoi(optarg);
+		printf("BOO\n");
                 break;
             default :
                 help_hint();
@@ -561,11 +562,14 @@ __STATIC__ int main( int argc, char **argv )
 
 int test_tde( void )                                                            //tde图形操作测试
 {
-    long long i_filesize_src = 0, i_filesize_bg = 0;
+    long long i_filesize_bg = 0;
     FILE *pFILE;
     void *p_vaddr_src= NULL, *p_vaddr_bg= NULL;
     int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * 3;
     int i_total_offset = tde_layer_screen.width * tde_layer_screen.height * 3;
+
+    printf("i_dmasize_bg = %d\n", i_dmasize_bg);
+    printf("i_total_offset = %d\n", i_total_offset);
 
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话，将buffer设置为使用另外一个buffer的偏移值
         DUAL_FB_VAR ^= 1;
@@ -600,10 +604,6 @@ int test_tde( void )                                                            
                                  
     }        
     }	
-        /*pFILE = fopen( pc_file_bg , "rb" );                                     //将图片内容读入pmem
-        fseek( pFILE, 0, SEEK_SET ) ;
-        fread( ( char * )p_vaddr_bg, 1, i_filesize_bg, pFILE);
-        fclose( pFILE );*/
         ak_tde_opt_scale( &tde_layer_bg, &tde_layer_screen );                   //贴背景图片
     }
 
