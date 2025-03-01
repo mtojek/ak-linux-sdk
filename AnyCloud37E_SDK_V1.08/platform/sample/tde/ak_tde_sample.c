@@ -446,20 +446,6 @@ static int ak_gui_open( struct fb_fix_screeninfo *p_fb_fix_screeninfo, struct fb
             return AK_FAILED;
         }
 
-        if ( DUAL_FB_FIX == AK_TRUE )  {                                        //如果使用双buffer的话则调用ioctl
-            i_screen_size = p_fb_fix_screeninfo->smem_len / 2 ;
-        }
-        else {
-            i_screen_size = p_fb_fix_screeninfo->smem_len ;
-        }
-        if( p_fb_var_screeninfo->xres_virtual * p_fb_var_screeninfo->yres_virtual *
-            af_format_byte[ tde_layer_screen.format_param ] > i_screen_size  ) {
-            ak_print_error_ex( MODULE_ID_APP, "SCREEN FORMAT ERROR. Assign pixels sizes(%0.0f) is more than screen pixels sizes(%d)\n",
-                               p_fb_var_screeninfo->xres_virtual * p_fb_var_screeninfo->yres_virtual *
-                               af_format_byte[ tde_layer_screen.format_param ], i_screen_size );
-            close( fd_gui );
-            return AK_FAILED;
-        }
         *pv_addr = osal_fb_mmap_viraddr(p_fb_fix_screeninfo->smem_len, fd_gui);//( void * )mmap( 0 , p_fb_fix_screeninfo->smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_gui, 0 );
 
         if( c_reset_screen == AK_TRUE ) {
@@ -468,16 +454,6 @@ static int ak_gui_open( struct fb_fix_screeninfo *p_fb_fix_screeninfo, struct fb
             p_fb_var_screeninfo->xres = p_fb_var_screeninfo->xres_virtual;
             p_fb_var_screeninfo->yres = p_fb_var_screeninfo->yres_virtual;
             switch ( tde_layer_screen.format_param ) {
-                case GP_FORMAT_RGB565 :
-                case GP_FORMAT_BGR565 :
-                    p_fb_var_screeninfo->bits_per_pixel = BITS_PER_PIXEL565;
-                    p_fb_var_screeninfo->red.offset = OFFSET565_RED;
-                    p_fb_var_screeninfo->red.length = 5 ;
-                    p_fb_var_screeninfo->green.offset = OFFSET565_GREEN;
-                    p_fb_var_screeninfo->green.length = 6 ;
-                    p_fb_var_screeninfo->blue.offset = OFFSET565_BLUE;
-                    p_fb_var_screeninfo->blue.length = 5 ;
-                    break;
                 case GP_FORMAT_RGB888 :
                 case GP_FORMAT_BGR888 :
                     p_fb_var_screeninfo->bits_per_pixel = BITS_PER_PIXEL;
