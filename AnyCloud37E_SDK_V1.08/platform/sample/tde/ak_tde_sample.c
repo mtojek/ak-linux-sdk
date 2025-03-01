@@ -559,23 +559,13 @@ __STATIC__ int main( int argc, char **argv )
     return 0;
 }
 
-#if 0
-static int dump_layer_para(const char * name, struct ak_tde_layer* layer)
-{
-    printf( "%d %d %d %d %d %d %d 0x%x\n",
-            layer->width, layer->height,layer->pos_left, layer->pos_top,layer->pos_width, layer->pos_height,
-            layer->format_param, layer->phyaddr);
-    return 0;
-}
-#endif
-
 int test_tde( void )                                                            //tde图形操作测试
 {
     long long i_filesize_src = 0, i_filesize_bg = 0;
     FILE *pFILE;
     void *p_vaddr_src= NULL, *p_vaddr_bg= NULL;
-    int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * af_format_byte[ tde_layer_bg.format_param ];         //背景图片的设定大小
-    int i_total_offset = tde_layer_screen.width * tde_layer_screen.height * af_format_byte[ tde_layer_screen.format_param ] ;
+    int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * 3;
+    int i_total_offset = tde_layer_screen.width * tde_layer_screen.height * 3;
 
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话，将buffer设置为使用另外一个buffer的偏移值
         DUAL_FB_VAR ^= 1;
@@ -585,7 +575,7 @@ int test_tde( void )                                                            
         tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start ;
     }
 
-    i_filesize_bg = get_file_size( pc_file_bg );
+    i_filesize_bg = tde_layer_bg.width * tde_layer_bg.height * 3;
     if( i_filesize_bg > 0 ) {
         p_vaddr_bg = ak_mem_dma_alloc( 1, i_filesize_bg );
         ak_mem_dma_vaddr2paddr( p_vaddr_bg , ( unsigned long * )&tde_layer_bg.phyaddr );      //获取背景图片dma物理地址
@@ -615,9 +605,6 @@ int test_tde( void )                                                            
         fread( ( char * )p_vaddr_bg, 1, i_filesize_bg, pFILE);
         fclose( pFILE );*/
         ak_tde_opt_scale( &tde_layer_bg, &tde_layer_screen );                   //贴背景图片
-    }
-    else {                                                                      //没有背景图片则使用白色背景
-        memset( p_vaddr_fb , c_color_reset , fb_fix_screeninfo_param.smem_len );
     }
 
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话则调用ioctl
