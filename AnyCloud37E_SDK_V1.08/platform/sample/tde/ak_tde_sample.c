@@ -566,26 +566,20 @@ int test_tde( void )                                                            
     FILE *pFILE;
     void *p_vaddr_src= NULL, *p_vaddr_bg= NULL;
     int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * 3;
-    int i_total_offset = tde_layer_screen.width * tde_layer_screen.height * 3;
 
-    printf("i_dmasize_bg = %d\n", i_dmasize_bg);
-    printf("i_total_offset = %d\n", i_total_offset);
 
     if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话，将buffer设置为使用另外一个buffer的偏移值
         DUAL_FB_VAR ^= 1;
-        tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start + DUAL_FB_VAR * i_total_offset ;
+        tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start + DUAL_FB_VAR * i_dmasize_bg;
     }
     else {
         tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start ;
     }
 
-    i_filesize_bg = tde_layer_bg.width * tde_layer_bg.height * 3;
-    if( i_filesize_bg > 0 ) {
-        p_vaddr_bg = ak_mem_dma_alloc( 1, i_filesize_bg );
+        p_vaddr_bg = ak_mem_dma_alloc( 1, i_dmasize_bg);
         ak_mem_dma_vaddr2paddr( p_vaddr_bg , ( unsigned long * )&tde_layer_bg.phyaddr );      //获取背景图片dma物理地址
-    }
 
-    if( i_filesize_bg > 0 ) {                                                   //背景图片
+    if( i_dmasize_bg > 0 ) {                                                   //背景图片
 										//
     unsigned long x = 0, y = 0;
     for (y = 0; y < 600; y++) {
