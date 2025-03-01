@@ -5,28 +5,27 @@
 * Notes:
 * History: V1.0.0
 */
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
 #include <fcntl.h>
-#include <dirent.h>
+//#include <dirent.h>
 #include <getopt.h>
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
-#include <regex.h>
+//#include <regex.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 
 #include "ak_tde_sample.h"
-#include "ak_common.h"
+//#include "ak_common.h"
 #include "ak_mem.h"
 #include "ak_common_graphics.h"
 #include "ak_tde.h"
-#include "ak_mem.h"
 #include "ak_log.h"
 
 #ifdef AK_RTOS
@@ -106,7 +105,7 @@ static int help_hint(void)
     int i;
 
     printf( "%s\n" , pc_prog_name);
-    printf( "Version: \r\n\t%s \n\n", ak_tde_get_version());
+    //printf( "Version: \r\n\t%s \n\n", ak_tde_get_version());
     printf( "Usage: \r\n\t%s  [options] <value>\n\n", pc_prog_name);
     printf( "options: \r\n");
     for(i = 0; i < sizeof(option_long) / sizeof(struct option); i ++) {
@@ -632,7 +631,7 @@ __STATIC__ int main( int argc, char **argv )
     }
 
     ak_print_normal(MODULE_ID_APP, "*****************************************\n");
-	ak_print_normal(MODULE_ID_APP, "** tde demo version: %s **\n", ak_tde_get_version());
+	//ak_print_normal(MODULE_ID_APP, "** tde demo version: %s **\n", ak_tde_get_version());
     ak_print_normal(MODULE_ID_APP, "*****************************************\n");
 
     if( ak_tde_open( ) != ERROR_TYPE_NO_ERROR ) {
