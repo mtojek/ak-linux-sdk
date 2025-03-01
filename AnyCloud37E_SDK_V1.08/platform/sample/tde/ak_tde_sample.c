@@ -38,7 +38,6 @@
 static int fd_gui = 0;
 
 static char *pc_prog_name = NULL;                                                      //demo名称
-static char *pc_file_src = DEFAULT_FILE_SRC;                                           //tde_opt使用的测试图片
 static char *pc_file_bg = DEFAULT_FILE_BG;                                             //tde_opt使用的背景图片
 
 extern void *osal_fb_mmap_viraddr(int fb_len, int fb_fd);
@@ -70,7 +69,6 @@ static char ac_option_hint[  ][ LEN_HINT ] = {                                  
 };
 
 static double af_format_byte[  ] = { 2 , 3 , 2 , 3 , 1.5 , 1.5 , 4 , 4 , 4 , 4 , 0 };  //图形格式占用的字节数
-static struct ak_tde_layer tde_layer_src = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;    //源坐标
 static struct ak_tde_layer tde_layer_bg = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;     //背景图坐标
 static struct ak_tde_layer tde_layer_screen = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ; //屏幕坐标
 static unsigned char c_color_reset = 0xff ;                                     //重置屏幕的颜色
@@ -84,14 +82,10 @@ static struct option option_long[ ] = {
     { "opt-rotate"        , required_argument , NULL , 'b' } ,                  //"[0-3] 选择指定角度 (0:DEGREE0 1:DEGREE90 2:DEGREE180 3:DEGREE270)" ,
     { "opt-transparent"   , required_argument , NULL , 'c' } ,                  //"[0-15] 透明度设置" ,
     { "opt-colorkey"      , required_argument , NULL , 'd' } ,                  //"\"[[HEX-COLOR-MIN] [HEX-COLOR-MAX] [0:DEL 1:KEEP]\" 颜色过滤设置" ,
-    { "file-s"            , required_argument , NULL , 'e' } ,                  //"[FILE] 源图文件   (DEFAULT: ak_tde_s_test.rgb)" ,
     { "file-bg"           , required_argument , NULL , 'f' } ,                  //"[FILE] 背景图文件 (DEFAULT: ak_tde_bg_test.rgb)" ,
-    { "rect-s"            , required_argument , NULL , 'g' } ,                  //"\"[PIC-WIDTH] [PIC-HEIGHT] [RECT-TOP] [RECT-LEFT] [RECT-WIDTH] [RECT-HEIGHT]\" 源图坐标参数" ,
     { "rect-bg"           , required_argument , NULL , 'i' } ,                  //"\"[PIC-WIDTH] [PIC-HEIGHT] [RECT-TOP] [RECT-LEFT] [RECT-WIDTH] [RECT-HEIGHT]\" 背景图坐标参数" ,
     { "format-bg"         , required_argument , NULL , 'j' } ,                  //"[NUM] 背景图层格式 0:RGB565 1:RGB888 2:BGR565 3:BGR888 4:YUV420P 5:YUV420SP 6:ARGB8888 7:RGBA8888 8:ABGR8888 9:BGRA8888 10:TILED32X4" ,
     { "format-out"        , required_argument , NULL , 'k' } ,                  //"[NUM] 目标图层格式 0:RGB565 1:RGB888 2:BGR565 3:BGR888 4:YUV420P 5:YUV420SP" ,
-    { "format-s"          , required_argument , NULL , 'l' } ,                  //"[NUM] 源图图层格式 0:RGB565 1:RGB888 2:BGR565 3:BGR888 4:YUV420P 5:YUV420SP 6:ARGB8888 7:RGBA8888 8:ABGR8888 9:BGRA8888 10:TILED32X4" ,
-    { "rect-t"            , required_argument , NULL , 'm' } ,                  //"\"[RECT-TOP] [RECT-LEFT] [RECT-WIDTH] [RECT-HEIGHT]\" 源图贴图的坐标参数" ,
     { 0                   , 0                 , 0    ,  0  } ,                  //"" ,
  };
 
@@ -377,9 +371,6 @@ static int parse_option( int argc, char **argv )
                             break;
                     }
                 }
-                break;
-            case 'e' :                                                          //file-s 源图文件
-                pc_file_src = optarg;
                 break;
             case 'f' :                                                          //file-bg 源图文件
                 pc_file_bg = optarg;
