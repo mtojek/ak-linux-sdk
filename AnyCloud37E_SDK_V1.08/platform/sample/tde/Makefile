@@ -29,6 +29,10 @@ INCLUDE    =	-I. \
 
 SRCDIR += .
 
+LVGL_DIR = ./lvgl
+SRCDIR += $(LVGL_DIR)/src $(LVGL_DIR)/src/lv_core $(LVGL_DIR)/src/lv_hal $(LVGL_DIR)/src/lv_font $(LVGL_DIR)/src/lv_draw \
+	           $(LVGL_DIR)/src/lv_misc $(LVGL_DIR)/src/lv_themes $(LVGL_DIR)/src/lv_widgets
+
 CSRCS += $(foreach d, $(SRCDIR), $(wildcard $d/*.c))
 
 COBJS += $(patsubst %.c, %.o, $(CSRCS))
