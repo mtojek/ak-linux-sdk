@@ -56,30 +56,6 @@ int test_yuv( char *pc_pach );
 static int test_tde( void );
 
 /*
-	help_hint: 根据option_long和ac_option_hint数组打印帮助信息
-	return: 0
-*/
-static int help_hint(void);
-
-/*
-	get_option_short: 根据option_long填充短选项字符串
-	@p_option[IN]: struct option数组地址
-	@i_num_option[IN]: 数组元素个数
-	@pc_option_short[IN]: 填充的数组地址
-	@i_len_option[IN]: 数组长度
-	return: pc_option_short
-*/
-static char *get_option_short( struct option *p_option, int i_num_option, char *pc_option_short, int i_len_option );
-
-/*
-	parse_option: 对传入的选项进行解释
-	@argc[IN]: 从程序入口传入的选项数量
-	@argv[IN]: 选项内容的字符串指针数组
-	return: AK_TRUE:继续运行  AK_FALSE:退出应用,在打印帮助或者选项解释错误的时候使用
-*/
-static int parse_option( int argc, char **argv );
-
-/*
 	get_file_size: 获取文件长度
 	return: 成功:AK_SUCCESS 失败:AK_FAILED
 */

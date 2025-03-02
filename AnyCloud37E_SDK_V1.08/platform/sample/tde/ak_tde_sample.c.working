@@ -1,0 +1,276 @@
+﻿/**
+* Copyright (C) 2019 Anyka(Guangzhou) Microelectronics Technology CO.,LTD.
+* File Name: ak_tde_demo.c
+* Description: This is a simple example to show how the tde module working.
+* Notes:
+* History: V1.0.0
+*/
+//#include <stdio.h>
+//#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
+#include <fcntl.h>
+//#include <dirent.h>
+#include <getopt.h>
+//#include <stdio.h>
+#include <stdlib.h>
+//#include <regex.h>
+#include <linux/fb.h>
+#include <sys/ioctl.h>
+//#include <sys/mman.h>
+
+#include "ak_tde_sample.h"
+//#include "ak_common.h"
+#include "ak_mem.h"
+#include "ak_common_graphics.h"
+#include "ak_tde.h"
+#include "ak_log.h"
+
+#ifdef AK_RTOS
+#include <kernel.h>
+#define __STATIC__  static
+#else
+#define __STATIC__
+#endif
+
+void print_fb_var_screeninfo(struct fb_var_screeninfo vinfo) {
+    printf("Framebuffer Variable Screen Information:\n");
+    printf("-----------------------------------------\n");
+    printf("Resolution:        %d x %d\n", vinfo.xres, vinfo.yres);
+    printf("Virtual Resolution:%d x %d\n", vinfo.xres_virtual, vinfo.yres_virtual);
+    printf("Offset:            %d x %d\n", vinfo.xoffset, vinfo.yoffset);
+    printf("Bits per Pixel:    %d\n", vinfo.bits_per_pixel);
+    printf("Grayscale:         %d\n", vinfo.grayscale);
+    printf("\nColor Offsets and Lengths:\n");
+    printf("Red:    Offset=%d, Length=%d\n", vinfo.red.offset, vinfo.red.length);
+    printf("Green:  Offset=%d, Length=%d\n", vinfo.green.offset, vinfo.green.length);
+    printf("Blue:   Offset=%d, Length=%d\n", vinfo.blue.offset, vinfo.blue.length);
+    printf("Transp: Offset=%d, Length=%d\n", vinfo.transp.offset, vinfo.transp.length);
+    printf("\nMiscellaneous:\n");
+    printf("Pixel Clock:       %d ps\n", vinfo.pixclock);
+    printf("Refresh Rate:      %d Hz\n", vinfo.vmode);
+    printf("Activate Flags:    %d\n", vinfo.activate);
+    printf("Sync:              %d\n", vinfo.sync);
+    printf("Rotate:            %d\n", vinfo.rotate);
+    printf("Nonstandard:       %d\n", vinfo.nonstd);
+    printf("\n");
+}
+
+static int fd_gui = 0;
+
+static char *pc_prog_name = NULL;                                                      //demo名称
+static char *pc_file_bg = DEFAULT_FILE_BG;                                             //tde_opt使用的背景图片
+
+extern void *osal_fb_mmap_viraddr(int fb_len, int fb_fd);
+extern int osal_fb_munmap_viraddr(void *addr, int fb_len);
+
+static struct ak_tde_cmd tde_cmd_param;                                                //进行tde操作的结构体
+static struct fb_fix_screeninfo fb_fix_screeninfo_param;                               //屏幕固定参数
+static struct fb_var_screeninfo fb_var_screeninfo_param;                               //屏幕可配置参数
+static char c_reset_screen = AK_TRUE;                                                 //是否重置屏幕参数
+static void *p_vaddr_fb = NULL;                                                        //fb0的虚拟内存地址
+static struct ak_tde_layer tde_layer_bg = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;     //背景图坐标
+static struct ak_tde_layer tde_layer_screen = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ; //屏幕坐标
+
+
+/*
+    ak_gui_open: 打开lcd屏幕设备
+    @p_fb_fix_screeninfo[OUT]:返回屏幕的只读信息
+    @p_fb_var_screeninfo[OUT]:返回屏幕的可配置信息
+    @pv_addr[OUT]:显存的地址
+    return: 成功:AK_SUCCESS 失败:AK_FAILED
+*/
+static int ak_gui_open( struct fb_fix_screeninfo *p_fb_fix_screeninfo, struct fb_var_screeninfo *p_fb_var_screeninfo, void **pv_addr )
+{
+    int i_screen_size = 0 ;
+
+    if ( fd_gui > 0 ) {
+        return AK_SUCCESS;
+    }
+    else if ( ( fd_gui = open( DEV_GUI, O_RDWR ) ) > 0 ) {
+
+        if (ioctl(fd_gui, FBIOGET_FSCREENINFO, p_fb_fix_screeninfo) < 0) {
+            close( fd_gui );
+            return AK_FAILED;
+        }
+        if (ioctl(fd_gui, FBIOGET_VSCREENINFO, p_fb_var_screeninfo) < 0) {
+            close( fd_gui );
+            return AK_FAILED;
+        }
+    tde_layer_bg.width = 1024;                         
+    tde_layer_bg.height = 600;               
+    tde_layer_bg.pos_left = 0;                                                   
+    tde_layer_bg.pos_top = 0;                                                        
+    tde_layer_bg.pos_width = 1024;                                                 
+    tde_layer_bg.pos_height = 600;
+
+        *pv_addr = osal_fb_mmap_viraddr(p_fb_fix_screeninfo->smem_len, fd_gui);//( void * )mmap( 0 , p_fb_fix_screeninfo->smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_gui, 0 );
+
+        if( c_reset_screen == AK_TRUE ) {
+            p_fb_var_screeninfo->activate |= FB_ACTIVATE_FORCE;
+            p_fb_var_screeninfo->activate |= FB_ACTIVATE_NOW;
+            p_fb_var_screeninfo->xres = p_fb_var_screeninfo->xres_virtual;
+            p_fb_var_screeninfo->yres = p_fb_var_screeninfo->yres_virtual;
+            switch ( tde_layer_screen.format_param ) {
+                case GP_FORMAT_RGB888 :
+                case GP_FORMAT_BGR888 :
+                    p_fb_var_screeninfo->bits_per_pixel = BITS_PER_PIXEL;
+                    p_fb_var_screeninfo->red.offset = OFFSET_RED;
+                    p_fb_var_screeninfo->red.length = LEN_COLOR ;
+                    p_fb_var_screeninfo->green.offset = OFFSET_GREEN;
+                    p_fb_var_screeninfo->green.length = LEN_COLOR ;
+                    p_fb_var_screeninfo->blue.offset = OFFSET_BLUE;
+                    p_fb_var_screeninfo->blue.length = LEN_COLOR ;
+                    break;
+                default :
+                    close( fd_gui );
+                    return AK_FAILED;
+            }
+	    print_fb_var_screeninfo(*p_fb_var_screeninfo);
+            if (ioctl(fd_gui, FBIOPUT_VSCREENINFO, p_fb_var_screeninfo) < 0) {
+                close( fd_gui );
+                return AK_FAILED;
+            }
+            memset( *pv_addr, 0 , p_fb_fix_screeninfo->smem_len );
+        }
+
+        tde_layer_screen.width      = fb_var_screeninfo_param.xres;
+        tde_layer_screen.height     = fb_var_screeninfo_param.yres;
+        tde_layer_screen.pos_left   = 0;
+        tde_layer_screen.pos_top    = 0;
+        tde_layer_screen.pos_width  = fb_var_screeninfo_param.xres;
+        tde_layer_screen.pos_height = fb_var_screeninfo_param.yres;
+        tde_layer_screen.phyaddr    = fb_fix_screeninfo_param.smem_start;
+        return AK_SUCCESS;
+    }
+    else {
+        return AK_FAILED;
+    }
+}
+
+/*
+    ak_gui_close: 关闭lcd屏幕设备
+    return: 成功:AK_SUCCESS 失败:AK_FAILED
+*/
+static int ak_gui_close( void )
+{
+    if ( fd_gui > 0 ){
+        if( p_vaddr_fb != NULL ) {
+            osal_fb_munmap_viraddr( p_vaddr_fb, fb_fix_screeninfo_param.smem_len );//munmap( p_vaddr_fb, fb_fix_screeninfo_param.smem_len );
+        }
+        if( close( fd_gui ) == 0 ) {
+            fd_gui = 0 ;
+            return AK_SUCCESS;
+        }
+        else {
+
+            return AK_FAILED;
+        }
+    }
+    else {
+        return AK_SUCCESS;
+    }
+}
+
+/*
+    get_file_size: 获取文件长度
+    return: 成功:AK_SUCCESS 失败:AK_FAILED
+*/
+static long long int get_file_size( char *pc_filename )
+{
+    struct stat stat_buf;
+    if( stat( pc_filename , &stat_buf ) < 0 ){
+        return AK_FAILED ;
+    }
+    return ( unsigned int )stat_buf.st_size ;
+}
+
+__STATIC__ int main( int argc, char **argv )
+{
+    sdk_run_config config= {0};
+
+    config.mem_trace_flag = SDK_RUN_NORMAL;
+    ak_sdk_init( &config );
+
+    ak_print_normal(MODULE_ID_APP, "*****************************************\n");
+	//ak_print_normal(MODULE_ID_APP, "** tde demo version: %s **\n", ak_tde_get_version());
+    ak_print_normal(MODULE_ID_APP, "*****************************************\n");
+
+    if( ak_tde_open( ) != ERROR_TYPE_NO_ERROR ) {
+        return 0;
+    }
+    if( ak_gui_open( &fb_fix_screeninfo_param, &fb_var_screeninfo_param, &p_vaddr_fb) != AK_SUCCESS ) {
+        ak_print_error_ex(MODULE_ID_APP, "fb open error.\n" );
+        return 0;
+    }
+
+    test_tde( );                                                                //tde图形测试
+#ifdef AK_RTOS
+    ak_sleep_ms(3000);
+#endif
+    ak_gui_close( );
+    ak_tde_close( );
+    ak_sdk_exit( );
+    return 0;
+}
+
+int test_tde( void )                                                            //tde图形操作测试
+{
+    int i_filesize_bg = 0;
+    FILE *pFILE;
+    void *p_vaddr_src= NULL, *p_vaddr_bg= NULL;
+    int i_dmasize_bg  = tde_layer_bg.width * tde_layer_bg.height * 3;
+
+
+    if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话，将buffer设置为使用另外一个buffer的偏移值
+        DUAL_FB_VAR ^= 1;
+        tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start + DUAL_FB_VAR * i_dmasize_bg;
+    }
+    else {
+        tde_layer_screen.phyaddr = fb_fix_screeninfo_param.smem_start ;
+    }
+    printf("tde_layer_screen.phyaddr = %lu\n", tde_layer_screen.phyaddr);
+
+        p_vaddr_bg = ak_mem_dma_alloc( 1, i_dmasize_bg);
+        ak_mem_dma_vaddr2paddr( p_vaddr_bg , ( unsigned long * )&tde_layer_bg.phyaddr );      //获取背景图片dma物理地址
+    printf("tde_layer_screen.phyaddr = %lu\n", tde_layer_screen.phyaddr);
+
+    if( i_dmasize_bg > 0 ) {                                                   //背景图片
+										//
+    unsigned long x = 0, y = 0;
+    for (y = 0; y < 600; y++) {
+    for (x = 0; x < 1024; x++) {
+        char *location = ((char *) p_vaddr_bg) + (y * 3072) + (x * 3);  // Ensure correct pointer arithmetic
+
+        if (y <= 600 / 7 || x <= 1024 / 7 || y >= (6 * 600 / 7) || x >= (6 * 1024 / 7)) {
+            *(location) = 0;     // Red                                                                          
+            *(location + 1) = 0;                                                  
+            *(location + 2) = 254;                           
+        } else {                               
+            *(location) = 254;
+            *(location + 1) = 0; // Green
+            *(location + 2) = 0;             
+        }
+                                 
+    }        
+    }	
+        ak_tde_opt_scale( &tde_layer_bg, &tde_layer_screen );                   //贴背景图片
+    }
+
+    if ( DUAL_FB_FIX == AK_TRUE )  {                                            //如果使用双buffer的话则调用ioctl
+        print_fb_var_screeninfo(fb_var_screeninfo_param);
+        ioctl( fd_gui, FBIOPUT_VSCREENINFO, &fb_var_screeninfo_param ) ;
+    }
+test_tde_end:
+    if( p_vaddr_bg != NULL ) {
+        ak_mem_dma_free( p_vaddr_bg );
+    }
+    return 0;
+}
+
+#ifdef AK_RTOS
+SHELL_CMD_EXPORT_ALIAS(main, ak_tde_sample, TDE Sample Program);
+#endif
+
