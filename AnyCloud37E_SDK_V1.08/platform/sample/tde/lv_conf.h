@@ -14,8 +14,8 @@ typedef int16_t lv_coord_t;
 #define LV_COLOR_DEPTH 32        /* Set color depth (e.g., 16-bit RGB565) */
 #define LV_COLOR_16_SWAP 0       /* Set to 1 if swapping bytes is needed */
 
-#define LV_HOR_RES_MAX 600       /* Adjust for your screen resolution */
-#define LV_VER_RES_MAX 1024      /* Adjust for your screen resolution */
+#define LV_HOR_RES_MAX 1024       /* Adjust for your screen resolution */
+#define LV_VER_RES_MAX 600      /* Adjust for your screen resolution */
 
 #define LV_USE_GPU 0             /* Disable GPU acceleration (Anyka 3760D likely doesn't have one) */
 
@@ -29,6 +29,8 @@ typedef int16_t lv_coord_t;
 
 #define LV_USE_INPUT 1           /* Enable input (touchscreen/mouse) */
 #define LV_USE_INDEV_POINTER 1   /* Enable pointer input */
+
+#define LV_USE_DEMO_WIDGETS 1
 
 #endif /* LV_CONF_H */
 

@@ -164,7 +164,7 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     int16_t _x, _y;
     for(_y = area->y1; _y <= area->y2; _y++) {
         for(_x = area->x1; _x <= area->x2; _x++) {
-            buf1[_y * 600 + _x] = *color_p++;
+            buf1[_y * 1024 + _x] = *color_p++;
         }
     }
 
@@ -172,11 +172,11 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
     ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
 
-    unsigned long x = 0, y = 0;
+    int16_t x = 0, y = 0;
     for (y = 0; y < 600; y++) {
         for (x = 0; x < 1024; x++) {
             char *location = ((char *) p_vaddr_bg) + (y * 3072) + (x * 3);
-            lv_color_t color = buf1[y * 600 + x];
+            lv_color_t color = buf1[y * 1024 + x];
 
             *(location) = color.ch.red;
             *(location + 1) = color.ch.green;

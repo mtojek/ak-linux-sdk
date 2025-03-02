@@ -30,8 +30,11 @@ INCLUDE    =	-I. \
 SRCDIR += .
 
 LVGL_DIR = ./lvgl
+LV_EX_DIR = ./lv_examples
 SRCDIR += $(LVGL_DIR)/src $(LVGL_DIR)/src/lv_core $(LVGL_DIR)/src/lv_hal $(LVGL_DIR)/src/lv_font $(LVGL_DIR)/src/lv_draw \
-	           $(LVGL_DIR)/src/lv_misc $(LVGL_DIR)/src/lv_themes $(LVGL_DIR)/src/lv_widgets
+	           $(LVGL_DIR)/src/lv_misc $(LVGL_DIR)/src/lv_themes $(LVGL_DIR)/src/lv_widgets \
+		   $(LVGL_DIR)/lv_examples/src/lv_demo
+SRCDIR += $(LV_EX_DIR)/src $(LV_EX_DIR)/src/lv_demo_widgets
 
 CSRCS += $(foreach d, $(SRCDIR), $(wildcard $d/*.c))
 

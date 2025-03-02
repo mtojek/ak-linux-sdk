@@ -1,4 +1,5 @@
 #include "ak_lvgl.h"
+#include "lv_examples/lv_examples.h"
 
 int main() {
     sdk_run_config config= {0};
@@ -8,9 +9,10 @@ int main() {
 
     lvgl_port_init();
 
-    lv_obj_t *label = lv_label_create(lv_scr_act(), NULL);
-    lv_label_set_text(label, "Hello, Anyka!");
-    lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, 0);
+    //lv_obj_t *label = lv_label_create(lv_scr_act(), NULL);
+    //lv_label_set_text(label, "Hello, Anyka!");
+    //lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, 0);
+    lv_demo_widgets();
 
     while(1) {
         lv_task_handler();
