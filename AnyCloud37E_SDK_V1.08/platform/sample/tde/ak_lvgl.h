@@ -165,11 +165,7 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
 
     // Draw!
     int16_t _x, _y;
-    for(_y = area->y1; _y <= area->y2; _y++) {
-        for(_x = area->x1; _x <= area->x2; _x++) {
-            buf1[_y * 1024 + _x] = *color_p++;
-        }
-    }
+    //printf("area.y1 = %d, area.y2 = %d, area.x1 = %d, area.x2 = %d, colop = %lu\n", area->y1, area->y2, area->x1, area->x2, (unsigned long *) color_p);
 
     // Flushing!
     p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
@@ -184,7 +180,6 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
             *(location) = color.ch.red;
             *(location + 1) = color.ch.green;
             *(location + 2) = color.ch.blue;
-	    color_p++;
         }
     }
 
