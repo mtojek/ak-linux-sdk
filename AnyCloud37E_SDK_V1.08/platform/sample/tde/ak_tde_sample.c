@@ -20,6 +20,7 @@ int main() {
         ak_sleep_ms(5);
     }
 
+    ak_mem_dma_free(p_vaddr_bg);
     osal_fb_munmap_viraddr(fbp, finfo.smem_len);
     close(fbfd);
     ak_tde_close();

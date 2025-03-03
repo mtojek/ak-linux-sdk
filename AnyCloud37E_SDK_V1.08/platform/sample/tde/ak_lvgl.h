@@ -66,9 +66,6 @@ void print_fb_var_screeninfo(struct fb_var_screeninfo vinfo) {
 
 static lv_disp_buf_t draw_buf;
 static lv_color_t buf1[LV_BUF_SIZE];
-static lv_disp_drv_t disp_drv;
-
-static lv_indev_drv_t indev_drv;
 
 // Stub function for initializing the display
 void display_init(void) {
@@ -150,26 +147,30 @@ void display_init(void) {
     tde_layer_screen.pos_top    = 0;
     tde_layer_screen.pos_width  = vinfo.xres;
     tde_layer_screen.pos_height = vinfo.yres;
+    tde_layer_screen.phyaddr  = finfo.smem_start;
+
+    p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
+    ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
 }
 
 // Stub function for flushing the display
 void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
     //printf("Flushing display...\n");
 
-    if ( DUAL_FB_FIX == AK_TRUE )  {
+    /*if ( DUAL_FB_FIX == AK_TRUE )  {
         DUAL_FB_VAR ^= 1;           
         tde_layer_screen.phyaddr = finfo.smem_start + DUAL_FB_VAR * tde_layer_screen.width * tde_layer_screen.height * 3;
     } else {                                                                                                             
         tde_layer_screen.phyaddr  = finfo.smem_start;
-    }
+    }*/
 
     // Draw!
     int16_t _x, _y;
-    //printf("area.y1 = %d, area.y2 = %d, area.x1 = %d, area.x2 = %d, colop = %lu\n", area->y1, area->y2, area->x1, area->x2, (unsigned long *) color_p);
+    printf("area.y1 = %d, area.y2 = %d, area.x1 = %d, area.x2 = %d, colop = %lu\n", area->y1, area->y2, area->x1, area->x2, (unsigned long *) color_p);
 
     // Flushing!
-    p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
-    ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
+    //p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
+    //ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
 
     int16_t x = 0, y = 0;
     for (y = 0; y < 600; y++) {
@@ -189,7 +190,7 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
         return;
     }
 
-    if ( DUAL_FB_FIX == AK_TRUE )  {
+    /*if ( DUAL_FB_FIX == AK_TRUE )  {
         vinfo.activate = 128;
         //print_fb_var_screeninfo(vinfo);
 
@@ -198,9 +199,11 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
             close(fbfd);
             return;
         }
-    }
+    }*/
 
-    ak_mem_dma_free(p_vaddr_bg);
+    ak_sleep_ms(1);
+
+    //ak_mem_dma_free(p_vaddr_bg);
     lv_disp_flush_ready(disp_drv);
 }
 
@@ -210,13 +213,16 @@ void lvgl_port_init(void) {
     evdev_init();
 
     lv_disp_buf_init(&draw_buf, buf1, NULL, LV_BUF_SIZE);
+
+    lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
     disp_drv.buffer = &draw_buf;
     disp_drv.flush_cb = display_flush;
     disp_drv.hor_res = 1024; // Adjust based on actual resolution
     disp_drv.ver_res = 600; // Adjust based on actual resolution
-    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
+    lv_disp_drv_register(&disp_drv);
 
+    lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = evdev_read;  // Use evdev for touch input
