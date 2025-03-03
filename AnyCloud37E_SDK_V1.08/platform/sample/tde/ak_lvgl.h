@@ -141,16 +141,26 @@ void display_init(void) {
     memset(fbp, 0, finfo.smem_len); // Clear screen
 
     // Prepare screen
-    tde_layer_screen.width      = vinfo.xres;
-    tde_layer_screen.height     = vinfo.yres;
+    tde_layer_screen.width      = 1024;
+    tde_layer_screen.height     = 600;
     tde_layer_screen.pos_left   = 0;
     tde_layer_screen.pos_top    = 0;
-    tde_layer_screen.pos_width  = vinfo.xres;
-    tde_layer_screen.pos_height = vinfo.yres;
+    tde_layer_screen.pos_width  = 1024;
+    tde_layer_screen.pos_height = 600;
     tde_layer_screen.phyaddr  = finfo.smem_start;
 
     p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
     ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
+}
+
+void print_buf1_hex(const char *buf1) {
+    for (int i = 0; i < 64; i++) {
+        printf("%02X ", (unsigned char)buf1[i]); // Print each byte in hex format
+        if ((i + 1) % 16 == 0) {
+            printf("\n"); // Newline every 16 bytes for readability
+        }
+    }
+    printf("\n");
 }
 
 // Stub function for flushing the display
@@ -167,20 +177,20 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     // Draw!
     int16_t _x, _y;
     printf("area.y1 = %d, area.y2 = %d, area.x1 = %d, area.x2 = %d, colop = %lu\n", area->y1, area->y2, area->x1, area->x2, (unsigned long *) color_p);
+    print_buf1_hex((unsigned char *) buf1);
 
     // Flushing!
     //p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
     //ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
 
-    int16_t x = 0, y = 0;
+    unsigned long x = 0, y = 0;
     for (y = 0; y < 600; y++) {
         for (x = 0; x < 1024; x++) {
             char *location = ((char *) p_vaddr_bg) + (y * 3072) + (x * 3);
-            lv_color_t color = buf1[y * 1024 + x];
 
-            *(location) = color.ch.red;
-            *(location + 1) = color.ch.green;
-            *(location + 2) = color.ch.blue;
+            *(location) = color_p[y * 1024 + x].ch.red;
+            *(location + 1) = color_p[y * 1024 + x].ch.green;
+            *(location + 2) = color_p[y * 1024 + x].ch.blue;
         }
     }
 
@@ -200,8 +210,6 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
             return;
         }
     }*/
-
-    ak_sleep_ms(1);
 
     //ak_mem_dma_free(p_vaddr_bg);
     lv_disp_flush_ready(disp_drv);
