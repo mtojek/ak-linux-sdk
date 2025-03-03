@@ -1,6 +1,7 @@
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
+#include <stdint.h>
 typedef int16_t lv_coord_t;
 
 /*====================
@@ -27,8 +28,8 @@ typedef int16_t lv_coord_t;
 
 #define LV_DISP_DEF_REFR_PERIOD 30  /* Refresh every 30 ms */
 
-#define LV_USE_INPUT 1           /* Enable input (touchscreen/mouse) */
-#define LV_USE_INDEV_POINTER 1   /* Enable pointer input */
+#define LV_USE_INDEV 1
+#define LV_USE_EVDEV 1  // Enable evdev input driver
 
 #define LV_USE_DEMO_WIDGETS 1
 

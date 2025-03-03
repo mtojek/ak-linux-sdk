@@ -15,6 +15,7 @@ int main() {
     lv_demo_widgets();
 
     while(1) {
+        lv_tick_inc(5);
         lv_task_handler();
         ak_sleep_ms(5);
     }

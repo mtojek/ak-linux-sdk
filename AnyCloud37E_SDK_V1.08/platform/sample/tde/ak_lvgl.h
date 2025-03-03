@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "lvgl/lvgl.h"
+#include "lv_drivers/indev/evdev.h"
 
 #include "ak_mem.h"
 #include "ak_common_graphics.h"
@@ -66,6 +67,8 @@ void print_fb_var_screeninfo(struct fb_var_screeninfo vinfo) {
 static lv_disp_buf_t draw_buf;
 static lv_color_t buf1[LV_BUF_SIZE];
 static lv_disp_drv_t disp_drv;
+
+static lv_indev_drv_t indev_drv;
 
 // Stub function for initializing the display
 void display_init(void) {
@@ -151,7 +154,7 @@ void display_init(void) {
 
 // Stub function for flushing the display
 void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
-    printf("Flushing display...\n");
+    //printf("Flushing display...\n");
 
     if ( DUAL_FB_FIX == AK_TRUE )  {
         DUAL_FB_VAR ^= 1;           
@@ -193,7 +196,7 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
 
     if ( DUAL_FB_FIX == AK_TRUE )  {
         vinfo.activate = 128;
-        print_fb_var_screeninfo(vinfo);
+        //print_fb_var_screeninfo(vinfo);
 
         if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &vinfo) == -1) {
             perror("Failed to put framebuffer 2");
@@ -206,32 +209,22 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     lv_disp_flush_ready(disp_drv);
 }
 
-// Stub function for touch input
-bool touch_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
-    // TODO: Implement touch input reading
-    data->state = LV_INDEV_STATE_REL;
-    data->point.x = 0;
-    data->point.y = 0;
-    return false;
-}
-
 void lvgl_port_init(void) {
     lv_init();
-
     display_init();
-    
+    evdev_init();
+
     lv_disp_buf_init(&draw_buf, buf1, NULL, LV_BUF_SIZE);
     lv_disp_drv_init(&disp_drv);
     disp_drv.buffer = &draw_buf;
     disp_drv.flush_cb = display_flush;
     disp_drv.hor_res = 1024; // Adjust based on actual resolution
     disp_drv.ver_res = 600; // Adjust based on actual resolution
-    lv_disp_drv_register(&disp_drv);
+    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
 
-    lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = touch_read;
+    indev_drv.read_cb = evdev_read;  // Use evdev for touch input
     lv_indev_drv_register(&indev_drv);
 
     printf("LVGL initialized.\n");
