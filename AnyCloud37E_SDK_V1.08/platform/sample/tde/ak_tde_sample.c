@@ -20,8 +20,7 @@ int main() {
         ak_sleep_ms(5);
     }
 
-    osal_fb_munmap_viraddr(fbp, finfo.smem_len);
-    close(fbfd);
+    //osal_fb_munmap_viraddr(fbp, finfo.smem_len);
     ak_tde_close();
     ak_sdk_exit();
 

@@ -36,7 +36,7 @@ LV_DRV_DIR = ./lv_drivers
 SRCDIR += $(LVGL_DIR)/src $(LVGL_DIR)/src/lv_core $(LVGL_DIR)/src/lv_hal $(LVGL_DIR)/src/lv_font $(LVGL_DIR)/src/lv_draw \
 	           $(LVGL_DIR)/src/lv_misc $(LVGL_DIR)/src/lv_themes $(LVGL_DIR)/src/lv_widgets
 SRCDIR += $(LV_EX_DIR)/src $(LV_EX_DIR)/src/lv_demo_widgets
-SRCDIR += $(LV_DRV_DIR) $(LV_DRV_DIR)/indev
+SRCDIR += $(LV_DRV_DIR) $(LV_DRV_DIR)/indev $(LV_DRV_DIR)/display
 
 CSRCS += $(foreach d, $(SRCDIR), $(wildcard $d/*.c))
 
