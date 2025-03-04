@@ -16,6 +16,8 @@
 extern void *osal_fb_mmap_viraddr(int fb_len, int fb_fd);
 extern int osal_fb_munmap_viraddr(void *addr, int fb_len);
 
+#define FBIOGET_CUS_LCDBUSY (0x4680)
+
 #define BITS_PER_PIXEL 24              
 #define LEN_COLOR      8
  
@@ -29,14 +31,10 @@ enum color_offset {
 #define DUAL_FB_VAR vinfo.reserved[0]
 
 static void * fbp;
-static struct ak_tde_layer tde_layer_screen = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;
-static struct ak_tde_layer tde_layer_bg = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , GP_FORMAT_RGB888 } ;
                                                                                                  
 static int fbfd = -1;
 static struct fb_fix_screeninfo finfo;
 static struct fb_var_screeninfo vinfo;
-
-static void * p_vaddr_bg;
 
 void print_fb_var_screeninfo(struct fb_var_screeninfo vinfo) {
     printf("Framebuffer Variable Screen Information:\n");
@@ -64,8 +62,9 @@ void print_fb_var_screeninfo(struct fb_var_screeninfo vinfo) {
 // Placeholder for display buffer size (adjust based on available memory)
 #define LV_BUF_SIZE (1024 * 600)
 
-static lv_disp_buf_t draw_buf;
 static lv_color_t buf1[LV_BUF_SIZE];
+
+static lv_disp_buf_t draw_buf;
 
 // Stub function for initializing the display
 void display_init(void) {
@@ -96,27 +95,15 @@ void display_init(void) {
         return;
     }
 
-    if ( DUAL_FB_FIX == AK_TRUE )  {
-        printf("Framebuffer is running in dual mode.\n");
-    }
-
-    // Prepare background
-    tde_layer_bg.width = 1024;
-    tde_layer_bg.height = 600;
-    tde_layer_bg.pos_left = 0;
-    tde_layer_bg.pos_top = 0;
-    tde_layer_bg.pos_width = 1024;
-    tde_layer_bg.pos_height = 600;
-
     // mmap
+    int screensize = vinfo.yres_virtual * finfo.line_length;
+    //fbp = mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0);	    
     fbp = osal_fb_mmap_viraddr(finfo.smem_len, fbfd);
     if (fbp == MAP_FAILED) {
         perror("Failed to mmap framebuffer");
         close(fbfd);
         return;
     }
-
-    printf("vinfo.xres_virtual = %d, vinfo.yres_virtual = %d\n", vinfo.xres_virtual, vinfo.yres_virtual);
 
     vinfo.activate |= FB_ACTIVATE_FORCE;
     vinfo.activate |= FB_ACTIVATE_NOW;
@@ -139,79 +126,37 @@ void display_init(void) {
     }
 
     memset(fbp, 0, finfo.smem_len); // Clear screen
-
-    // Prepare screen
-    tde_layer_screen.width      = 1024;
-    tde_layer_screen.height     = 600;
-    tde_layer_screen.pos_left   = 0;
-    tde_layer_screen.pos_top    = 0;
-    tde_layer_screen.pos_width  = 1024;
-    tde_layer_screen.pos_height = 600;
-    tde_layer_screen.phyaddr  = finfo.smem_start;
-
-    p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
-    ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
-}
-
-void print_buf1_hex(const char *buf1) {
-    for (int i = 0; i < 64; i++) {
-        printf("%02X ", (unsigned char)buf1[i]); // Print each byte in hex format
-        if ((i + 1) % 16 == 0) {
-            printf("\n"); // Newline every 16 bytes for readability
-        }
-    }
-    printf("\n");
 }
 
 // Stub function for flushing the display
 void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
-    //printf("Flushing display...\n");
-
-    /*if ( DUAL_FB_FIX == AK_TRUE )  {
-        DUAL_FB_VAR ^= 1;           
-        tde_layer_screen.phyaddr = finfo.smem_start + DUAL_FB_VAR * tde_layer_screen.width * tde_layer_screen.height * 3;
-    } else {                                                                                                             
-        tde_layer_screen.phyaddr  = finfo.smem_start;
-    }*/
-
-    // Draw!
-    int16_t _x, _y;
-    printf("area.y1 = %d, area.y2 = %d, area.x1 = %d, area.x2 = %d, colop = %lu\n", area->y1, area->y2, area->x1, area->x2, (unsigned long *) color_p);
-    print_buf1_hex((unsigned char *) buf1);
-
-    // Flushing!
-    //p_vaddr_bg = ak_mem_dma_alloc(1, tde_layer_screen.width * tde_layer_screen.height * 3);
-    //ak_mem_dma_vaddr2paddr(p_vaddr_bg, (unsigned long *) &tde_layer_bg.phyaddr);
-
     unsigned long x = 0, y = 0;
+    uint8_t *fb = (uint8_t *)fbp;
+
+    unsigned long stat = 1;
+    while (stat) {
+	int ret = ioctl(fbfd, FBIOGET_CUS_LCDBUSY, &stat);
+	if (ret < 0) {
+		perror("lcdbusy failed");
+	}
+	if (stat > 0) {
+	   printf("busy stat: %lu\n", stat);
+	}
+	ak_sleep_ms(1);
+    }
+
     for (y = 0; y < 600; y++) {
         for (x = 0; x < 1024; x++) {
-            char *location = ((char *) p_vaddr_bg) + (y * 3072) + (x * 3);
+            long location = y * 3072 + x * 3;
 
-            *(location) = color_p[y * 1024 + x].ch.red;
-            *(location + 1) = color_p[y * 1024 + x].ch.green;
-            *(location + 2) = color_p[y * 1024 + x].ch.blue;
+            fb[location] = color_p[y * 1024 + x].ch.red;
+            fb[location + 1] = color_p[y * 1024 + x].ch.green;
+            fb[location + 2] = color_p[y * 1024 + x].ch.blue;
         }
     }
 
-    int r = ak_tde_opt_scale(&tde_layer_bg, &tde_layer_screen);
-    if (r != ERROR_TYPE_NO_ERROR) {
-        perror("ak_tde_opt_scale failed");
-        return;
-    }
+    ak_sleep_ms(4);
 
-    /*if ( DUAL_FB_FIX == AK_TRUE )  {
-        vinfo.activate = 128;
-        //print_fb_var_screeninfo(vinfo);
-
-        if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &vinfo) == -1) {
-            perror("Failed to put framebuffer 2");
-            close(fbfd);
-            return;
-        }
-    }*/
-
-    //ak_mem_dma_free(p_vaddr_bg);
     lv_disp_flush_ready(disp_drv);
 }
 
